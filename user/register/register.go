@@ -6,19 +6,23 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/prianka01/iitk-coin/model"
+	"iitk-coin/model"
 
 	"golang.org/x/crypto/bcrypt"
 )
 func addUser(user model.User) {
 	 database, _ := sql.Open("sqlite3", "../../userData.db")
-	statement, _ := database.Prepare("INSERT INTO user (Name, Rollno, Password, Token) VALUES (?, ?, ?, ?)")
+	statement, err:= database.Prepare("INSERT INTO User (Name, Rollno, Password, Token) VALUES (?, ?, ?, ?)")
+	if err!=nil {
+		panic(err)
+	}
     statement.Exec(user.Name,user.Rollno,user.Password,user.Token)
 }
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json; text/html; charset=utf-8")
+	// w.Header().Set("Content-Type", "application/json")
 	var user model.User
 	body, _ := ioutil.ReadAll(r.Body)
 	err := json.Unmarshal(body, &user)
@@ -28,16 +32,23 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(res)
 		return
 	}
-
 	database, err := sql.Open("sqlite3", "../../userData.db")
+	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS User (Name TEXT, Rollno INTEGER PRIMARY KEY, Password TEXT, Token TEXT)")
+    statement.Exec()
 	if err != nil {
 		res.Error = err.Error()
 		json.NewEncoder(w).Encode(res)
 		return
 	}
-	_, err = database.Query("SELECT * FROM user WHERE Rollno = (?)",user.Rollno);
-
-	if err != nil {
+	rows, err := database.Query("SELECT * FROM User WHERE Rollno IN (?)",user.Rollno);
+    if err!=nil {
+		panic(err)
+	}
+	present:=false
+    for rows.Next() {
+		present=true
+    }
+	if !present {
 		hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 5)
 
 		if err != nil {
@@ -48,16 +59,12 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		user.Password = string(hash)
 		user.Token=""
 		addUser(user)
-		if err != nil {
-			res.Error = "Error While Creating User, Try Again"
-			json.NewEncoder(w).Encode(res)
-			return
-		}
 		res.Result = "Registration Successful"
 		json.NewEncoder(w).Encode(res)
 		return
 	}
-	res.Result = "Username already Exists!!"
+
+	res.Result = "Rollno already Exists!!"
 	json.NewEncoder(w).Encode(res)
 	return
 }

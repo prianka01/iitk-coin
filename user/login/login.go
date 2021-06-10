@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/prianka01/iitk-coin/model"
+	"iitk-coin/model"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
@@ -31,9 +31,17 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var result model.User
 	var res model.ResponseResult
 
-	_, err = database.Query("SELECT * FROM user WHERE Rollno = (?)",user.Rollno);
+	rows, err := database.Query("SELECT * FROM User WHERE Rollno IN (?)",user.Rollno);
+    if err!=nil {
+		panic(err)
+	}
+	present:=false
+    for rows.Next() {
+		present=true
+		rows.Scan(&result.Name,&result.Rollno,&result.Password,&result.Token)
+    }
 
-	if err != nil {
+	if !present {
 		res.Error = "Invalid rollno"
 		json.NewEncoder(w).Encode(res)
 		return
@@ -63,7 +71,5 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	result.Token = tokenString
 	result.Password = ""
-
 	json.NewEncoder(w).Encode(result)
-
 }

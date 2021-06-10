@@ -5,23 +5,27 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/prianka01/iitk-coin/user/register"
+	"iitk-coin/user/register"
 
-	"github.com/prianka01/iitk-coin/user/login"
+	"iitk-coin/user/login"
 
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
 )
 func main() {
+	database, _ := sql.Open("sqlite3", "./userData.db")
+ 	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS User (Name TEXT, Rollno INTEGER PRIMARY KEY, Password TEXT, Token TEXT)")
+    statement.Exec()
+	 if err!=nil {
+		panic(err)
+	}
     r := mux.NewRouter()
 	r.HandleFunc("/signup", register.RegisterHandler).
-		Methods("POST")
+		Methods("POST","OPTIONS")
 	r.HandleFunc("/login", login.LoginHandler).
-		Methods("POST")
-	log.Fatal(http.ListenAndServe(":8080", r))
-    database, _ := sql.Open("sqlite3", "./userData.db")
- 	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS user (id INTEGER PRIMARY KEY, Name TEXT, Rollno INTEGER, Password TEXT, Token TEXT)")
-    statement.Exec()
+		Methods("POST","OPTIONS")
+	log.Fatal(http.ListenAndServe("localhost:8080", r))
+    
 	// addUser("Priyanka",190649,"random");
 	//  rows, _ := database.Query("SELECT id, name, rollno FROM user")
     // var id int
