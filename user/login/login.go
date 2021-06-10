@@ -23,7 +23,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	database, err := sql.Open("sqlite3", "../../userData.db")
+	database, err := sql.Open("sqlite3", "../../userDatas.db")
 
 	if err != nil {
 		log.Fatal(err)
@@ -38,7 +38,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	present:=false
     for rows.Next() {
 		present=true
-		rows.Scan(&result.Name,&result.Rollno,&result.Password,&result.Token)
+		rows.Scan(&result.Name,&result.Rollno,&result.Password,&result.Token,&result.CanAccessPage)
     }
 
 	if !present {
@@ -58,7 +58,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"name":  result.Name,
 		"rollno":result.Rollno,
-
+		"accesspage": result.CanAccessPage,
 	})
 
 	tokenString, err := token.SignedString([]byte("secret"))

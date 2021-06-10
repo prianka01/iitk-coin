@@ -11,12 +11,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 func addUser(user model.User) {
-	 database, _ := sql.Open("sqlite3", "../../userData.db")
-	statement, err:= database.Prepare("INSERT INTO User (Name, Rollno, Password, Token) VALUES (?, ?, ?, ?)")
+	 database, _ := sql.Open("sqlite3", "../../userDatas.db")
+	statement, err:= database.Prepare("INSERT INTO User (Name, Rollno, Password, Token, Access ) VALUES (?, ?, ?, ?, ?)")
 	if err!=nil {
 		panic(err)
 	}
-    statement.Exec(user.Name,user.Rollno,user.Password,user.Token)
+    statement.Exec(user.Name,user.Rollno,user.Password,user.Token,user.CanAccessPage)
 }
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -32,8 +32,8 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(res)
 		return
 	}
-	database, err := sql.Open("sqlite3", "../../userData.db")
-	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS User (Name TEXT, Rollno INTEGER PRIMARY KEY, Password TEXT, Token TEXT)")
+	database, err := sql.Open("sqlite3", "../../userDatas.db")
+	statement, _ := database.Prepare("CREATE TABLE IF NOT EXISTS User (Name TEXT, Rollno INTEGER PRIMARY KEY, Password TEXT, Token TEXT, Access BOOLEAN)")
     statement.Exec()
 	if err != nil {
 		res.Error = err.Error()
