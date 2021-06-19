@@ -1,11 +1,10 @@
 package coin
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"iitk-coin/model"
-
-	// "iitk-coin/packages/userip"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -40,15 +39,16 @@ func AwardCoins(w http.ResponseWriter, r *http.Request) {
 	}
 	var result model.User
 	var res model.ResponseResult
-	// var ctx context.Context
-	// tx,err:= database.BeginTx(ctx,nil);
-	//  if err != nil {
-    //     res.Error = err.Error()
-	// 	json.NewEncoder(w).Encode(res)
-    // }
+	var ctx context.Context
+	ctx=r.Context()
+	tx, err := database.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	 if err != nil {
+        res.Error = err.Error()
+		json.NewEncoder(w).Encode(res)
+    }
 	rows, err := database.Query("SELECT Rollno,Coins FROM User WHERE Rollno IN (?)",user.Rollno);
     if err!=nil {
-		// tx.Rollback()	
+		 tx.Rollback()	
 		panic(err)
 	}
 	present:=false
@@ -63,12 +63,14 @@ func AwardCoins(w http.ResponseWriter, r *http.Request) {
 	}
 	_,err=database.Exec(`UPDATE User set Coins=(?) WHERE Rollno=(?)`,result.Coins+user.AwardedCoins,result.Rollno)
 	if err != nil {
-		// tx.Rollback()
+		 tx.Rollback()
 		res.Error = err.Error()
 		json.NewEncoder(w).Encode(res)
 		return
 	}
-	// tx.Commit()
+	if err := tx.Commit(); err != nil {
+		log.Fatal(err)
+	}
 	res.Result = "Coins succesfully awarded"
 	json.NewEncoder(w).Encode(res)
 	return
@@ -89,15 +91,16 @@ func GetCoins(w http.ResponseWriter, r *http.Request) {
 	}
 	var result getCoin
 	var res model.ResponseResult
-	// var ctx context.Context
-	// tx,err:= database.BeginTx(ctx,nil);
-	//  if err != nil {
-    //     res.Error = err.Error()
-	// 	json.NewEncoder(w).Encode(res)
-    // }
+	var ctx context.Context
+	ctx=r.Context()
+	tx, err := database.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	 if err != nil {
+        res.Error = err.Error()
+		json.NewEncoder(w).Encode(res)
+    }
 	rows, err := database.Query("SELECT Rollno,Coins FROM User WHERE Rollno IN (?)",user.Rollno);
     if err!=nil {
-		// tx.Rollback()
+		tx.Rollback()
 		panic(err)
 	}
 	present:=false
@@ -110,7 +113,9 @@ func GetCoins(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(res)
 		return
 	}
-	// tx.Commit()
+	if err := tx.Commit(); err != nil {
+		log.Fatal(err)
+	}
 	json.NewEncoder(w).Encode(result)
 	return
 }
@@ -131,21 +136,16 @@ func TransferCoins(w http.ResponseWriter, r *http.Request) {
 	var sender model.User
 	var reciever model.User
 	var res model.ResponseResult
-	// var ctx context.Context
-	//  userIP, err := userip.FromRequest(r)
-    // if err != nil {
-    //     http.Error(w, err.Error(), http.StatusBadRequest)
-    //     return
-    // }
-    // ctx = userip.NewContext(ctx, userIP)
-	// tx,err:= database.BeginTx(ctx,nil);
-	//  if err != nil {
-    //     res.Error = err.Error()
-	// 	json.NewEncoder(w).Encode(res)
-    // }
+	var ctx context.Context
+	ctx=r.Context()
+	tx, err := database.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	 if err != nil {
+        res.Error = err.Error()
+		json.NewEncoder(w).Encode(res)
+    }
 	rows, err := database.Query("SELECT Rollno,Coins FROM User WHERE Rollno IN (?)",request.Sender);
     if err!=nil {
-		// tx.Rollback()
+		 tx.Rollback()
 		panic(err)
 	}
 	present:=false
@@ -160,7 +160,7 @@ func TransferCoins(w http.ResponseWriter, r *http.Request) {
 	}
 	rows, err = database.Query("SELECT Rollno,Coins FROM User WHERE Rollno IN (?)",request.Reciever);
     if err!=nil {
-		// tx.Rollback()
+		 tx.Rollback()
 		panic(err)
 	}
 	present=false
@@ -180,19 +180,21 @@ func TransferCoins(w http.ResponseWriter, r *http.Request) {
 	}
 	_,err=database.Exec(`UPDATE User set Coins=(?) WHERE Rollno=(?)`,sender.Coins-request.Coins,sender.Rollno)
 	if err != nil {
-		// tx.Rollback()
+		tx.Rollback()
 		res.Error = "Error While Updating Coins"
 		json.NewEncoder(w).Encode(res)
 		return
 	}
 	_,err=database.Exec(`UPDATE User set Coins=(?) WHERE Rollno=(?)`,reciever.Coins+request.Coins,reciever.Rollno)
 	if err != nil {
-		// tx.Rollback()
+		 tx.Rollback()
 		res.Error = "Error While Updating Coins"
 		json.NewEncoder(w).Encode(res)
 		return
 	}
-	// tx.Commit()
+	if err := tx.Commit(); err != nil {
+		log.Fatal(err)
+	}
 	res.Result = "Coins succesfully transferred"
 	json.NewEncoder(w).Encode(res)
 	return
