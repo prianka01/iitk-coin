@@ -6,6 +6,7 @@ type User struct {
 	Rollno        int    `json:"rollno"`
 	Token         string `json:"token"`
 	CanAccessPage bool   `json:"accesspage"`
+	Coins         int    `json:"coins"`
 }
 
 type ResponseResult struct {
