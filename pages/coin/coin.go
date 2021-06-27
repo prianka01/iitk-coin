@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	// "time"
 )
 
 type input struct {
@@ -61,7 +62,7 @@ func AwardCoins(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(res)
 		return
 	}
-	_,err=database.Exec(`UPDATE User set Coins=(?) WHERE Rollno=(?)`,result.Coins+user.AwardedCoins,result.Rollno)
+	_,err=database.Exec(`UPDATE User set Coins= Coins+(?) WHERE Rollno =(?)`,user.AwardedCoins,user.Rollno)
 	if err != nil {
 		 tx.Rollback()
 		res.Error = err.Error()
@@ -145,7 +146,6 @@ func TransferCoins(w http.ResponseWriter, r *http.Request) {
     }
 	rows, err := database.Query("SELECT Rollno,Coins FROM User WHERE Rollno IN (?)",request.Sender);
     if err!=nil {
-		 tx.Rollback()
 		panic(err)
 	}
 	present:=false
@@ -160,7 +160,6 @@ func TransferCoins(w http.ResponseWriter, r *http.Request) {
 	}
 	rows, err = database.Query("SELECT Rollno,Coins FROM User WHERE Rollno IN (?)",request.Reciever);
     if err!=nil {
-		 tx.Rollback()
 		panic(err)
 	}
 	present=false
@@ -178,16 +177,17 @@ func TransferCoins(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(res)
 		return
 	}
-	_,err=database.Exec(`UPDATE User set Coins=(?) WHERE Rollno=(?)`,sender.Coins-request.Coins,sender.Rollno)
-	if err != nil {
-		tx.Rollback()
-		res.Error = "Error While Updating Coins"
+	// time.Sleep(10*time.Second)
+	no,err:=database.Exec(`UPDATE User set Coins=Coins-(?) WHERE (Rollno=(?) AND Coins>=(?))`,request.Coins,request.Sender,request.Coins)
+	x,_:=no.RowsAffected()
+	if x==0 ||err != nil {
+		res.Error = "Error While Updating Coins or Coins not sufficient, Please try again"
 		json.NewEncoder(w).Encode(res)
 		return
 	}
-	_,err=database.Exec(`UPDATE User set Coins=(?) WHERE Rollno=(?)`,reciever.Coins+request.Coins,reciever.Rollno)
+	_,err=database.Exec(`UPDATE User set Coins=Coins+(?) WHERE Rollno=(?)`,request.Coins,request.Reciever)
 	if err != nil {
-		 tx.Rollback()
+		tx.Rollback()
 		res.Error = "Error While Updating Coins"
 		json.NewEncoder(w).Encode(res)
 		return
