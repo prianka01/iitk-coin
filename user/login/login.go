@@ -24,7 +24,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	database, err := sql.Open("sqlite3", "../../userdatabase.db")
+	database, err := sql.Open("sqlite3", "../../database.db")
 
 	if err != nil {
 		log.Fatal(err)
@@ -39,7 +39,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	present:=false
     for rows.Next() {
 		present=true
-		rows.Scan(&result.Name,&result.Rollno,&result.Password,&result.Token,&result.Access,result.Coins)
+		rows.Scan(&result.Name,&result.Rollno,&result.Password,&result.Token,&result.Access,result.Coins,result.EventsParticipated)
     }
 
 	if !present {
