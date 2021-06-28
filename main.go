@@ -15,13 +15,18 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 func main() {
-	database, _ := sql.Open("sqlite3", "./userdatabase.db")
- 	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS User (Name TEXT, Rollno INTEGER PRIMARY KEY, Password TEXT, Token TEXT, Access STRING, Coins INTEGER)")
+	database, _ := sql.Open("sqlite3", "./database.db")
+ 	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS User (Name TEXT, Rollno INTEGER PRIMARY KEY, Password TEXT, Token TEXT, Access STRING, Coins REAL, Events INTEGER)")
     statement.Exec()
 	 if err!=nil {
 		panic(err)
 	}
-    r := mux.NewRouter()
+	statement, err = database.Prepare("CREATE TABLE IF NOT EXISTS Transactions (Type TEXT, Sender INTEGER, Reciever INTEGER, Amount INTEGER, Tax REAL)")
+    statement.Exec()
+	 if err!=nil {
+		panic(err)
+	}
+	r := mux.NewRouter()
 	r.HandleFunc("/signup", register.RegisterHandler).
 		Methods("POST","OPTIONS")
 	r.HandleFunc("/login", login.LoginHandler).
