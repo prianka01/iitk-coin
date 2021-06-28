@@ -240,7 +240,7 @@ func TransferCoins(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	taxtype:=2
-	tax:=0.30*float64(request.Coins)
+	tax:=0.33*float64(request.Coins)
 	batch_sender:=(strconv.Itoa(request.Sender))[1]-47
 	batch_reciever:=(strconv.Itoa(request.Reciever))[1]-47
 	if batch_sender==batch_reciever {
@@ -256,7 +256,7 @@ func TransferCoins(w http.ResponseWriter, r *http.Request) {
 	// time.Sleep(10*time.Second)
 	var no sql.Result
 	if taxtype==2 {
-		no,err=database.Exec(`UPDATE User set Coins=Coins-(?) WHERE (Rollno=(?) AND Coins>=(?))`,float64(request.Coins)+0.30*float64(request.Coins),request.Sender,float64(request.Coins)+0.30*float64(request.Coins));
+		no,err=database.Exec(`UPDATE User set Coins=Coins-(?) WHERE (Rollno=(?) AND Coins>=(?))`,float64(request.Coins)+0.33*float64(request.Coins),request.Sender,float64(request.Coins)+0.33*float64(request.Coins));
 	}else {
 		no,err=database.Exec(`UPDATE User set Coins=Coins-(?) WHERE (Rollno=(?) AND Coins>=(?))`,float64(request.Coins)+0.02*float64(request.Coins),request.Sender,float64(request.Coins)+0.02*float64(request.Coins));
 	}
