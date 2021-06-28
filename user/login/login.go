@@ -1,7 +1,6 @@
 package login
 
 import (
-	"database/sql"
 	"encoding/json"
 	"io/ioutil"
 	"log"
@@ -9,6 +8,7 @@ import (
 	"strconv"
 
 	"iitk-coin/model"
+	"iitk-coin/pages/getdatabase"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
@@ -24,11 +24,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	database, err := sql.Open("sqlite3", "../../database.db")
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	database, _ := getdatabase.GetDatabase()
 	var result model.User
 	var res model.ResponseResult
 

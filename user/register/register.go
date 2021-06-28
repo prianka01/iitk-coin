@@ -1,17 +1,17 @@
 package register
 
 import (
-	"database/sql"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
 	"iitk-coin/model"
+	"iitk-coin/pages/getdatabase"
 
 	"golang.org/x/crypto/bcrypt"
 )
 func addUser(user model.User) {
-	database, _ := sql.Open("sqlite3", "../../database.db")
+	database, _ := getdatabase.GetDatabase()
 	statement, err:= database.Prepare("INSERT INTO User (Name, Rollno, Password, Token, Access, Coins, Events ) VALUES (?, ?, ?, ?, ?, ?, ?)")
 	if err!=nil {
 		panic(err)
@@ -22,7 +22,6 @@ func addUser(user model.User) {
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json; text/html; charset=utf-8")
-	// w.Header().Set("Content-Type", "application/json")
 	var user model.User
 	body, _ := ioutil.ReadAll(r.Body)
 	err := json.Unmarshal(body, &user)
@@ -32,7 +31,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(res)
 		return
 	}
-	database, err := sql.Open("sqlite3", "../../database.db")
+	database, _ := getdatabase.GetDatabase()
 	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS User (Name TEXT, Rollno INTEGER PRIMARY KEY, Password TEXT, Token TEXT, Access STRING, Coins REAL, Events INTEGER)")
     statement.Exec()
 	if err != nil {

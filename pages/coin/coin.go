@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"iitk-coin/model"
+	"iitk-coin/pages/getdatabase"
 	"iitk-coin/pages/secretpage"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 	// "time"
 )
 
@@ -28,17 +30,17 @@ type transfer struct {
 	Coins        	int    `json:"coins"`
 }
 func addTransaction(transaction model.Transaction) error{
-	database, _ := sql.Open("sqlite3", "../../database.db")
-	statement, err:= database.Prepare("INSERT INTO Transactions (Type, Sender, Reciever, Amount, Tax) VALUES (?, ?, ?, ?, ?)")
+	database, _ := getdatabase.GetDatabase()
+	statement, err:= database.Prepare("INSERT INTO Transactions (Type, Sender, Reciever, Amount, Tax, Timestamp) VALUES (?, ?, ?, ?, ?, ?)")
 	if err!=nil {
 		return err
 	}
-    _,err=statement.Exec(transaction.Type,transaction.Sender,transaction.Reciever,transaction.Amount,transaction.Tax)
+    _,err=statement.Exec(transaction.Type,transaction.Sender,transaction.Reciever,transaction.Amount,transaction.Tax,transaction.TimeStamp)
 	return err;
 }
 func createTable() error{
-	database, err := sql.Open("sqlite3", "../../database.db")
-	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS Transactions (Type TEXT, Sender INTEGER, Reciever INTEGER, Amount INTEGER, Tax REAL)")
+	database, _ := getdatabase.GetDatabase()
+	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS Transactions (Type TEXT, Sender INTEGER, Reciever INTEGER, Amount INTEGER, Tax REAL, Timestamp TEXT)")
     statement.Exec()
 	 if err!=nil {
 		panic(err)
@@ -66,10 +68,7 @@ func AwardCoins(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	database, err := sql.Open("sqlite3", "../../database.db")
-	if err != nil {
-		log.Fatal(err)
-	}
+	database, _ := getdatabase.GetDatabase()
 	var result model.User
 	
 	var ctx context.Context
@@ -107,6 +106,7 @@ func AwardCoins(w http.ResponseWriter, r *http.Request) {
 	transaction.Amount=user.AwardedCoins
 	transaction.Tax=0
 	transaction.Sender=1
+	transaction.TimeStamp=time.Now().String()
 	err=createTable()
 	if err!=nil {
 		 tx.Rollback()
@@ -147,11 +147,7 @@ func GetCoins(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user.Rollno=rollno
-	database, err := sql.Open("sqlite3", "../../database.db")
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	database, _ := getdatabase.GetDatabase()
 	var result getCoin
 	var ctx context.Context
 	ctx=r.Context()
@@ -205,11 +201,7 @@ func TransferCoins(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	request.Sender=rollno
-	database, err := sql.Open("sqlite3", "../../database.db")
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	database, _ := getdatabase.GetDatabase()
 	var sender model.User
 	var reciever model.User
 	var ctx context.Context
@@ -287,6 +279,7 @@ func TransferCoins(w http.ResponseWriter, r *http.Request) {
 	transaction.Reciever=request.Reciever
 	transaction.Amount=request.Coins
 	transaction.Tax=tax
+	transaction.TimeStamp=time.Now().String()
 	err=createTable()
 	if err!=nil {
 		 tx.Rollback()

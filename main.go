@@ -16,13 +16,13 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 func main() {
-	database, _ := sql.Open("sqlite3", "./database.db")
+	database, _ := sql.Open("sqlite3", "./datarecord.db")
  	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS User (Name TEXT, Rollno INTEGER PRIMARY KEY, Password TEXT, Token TEXT, Access STRING, Coins REAL, Events INTEGER)")
     statement.Exec()
 	 if err!=nil {
 		panic(err)
 	}
-	statement, err = database.Prepare("CREATE TABLE IF NOT EXISTS Transactions (Type TEXT, Sender INTEGER, Reciever INTEGER, Amount INTEGER, Tax REAL)")
+	statement, err = database.Prepare("CREATE TABLE IF NOT EXISTS Transactions (Type TEXT, Sender INTEGER, Reciever INTEGER, Amount INTEGER, Tax REAL, Timestamp TEXT)")
     statement.Exec()
 	 if err!=nil {
 		panic(err)

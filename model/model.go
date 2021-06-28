@@ -16,9 +16,10 @@ type ResponseResult struct {
 }
 
 type Transaction struct {
-	Type     string  `json:"type"`
-	Sender   int     `json:"sender"`
-	Reciever int     `json:"reciever"`
-	Amount   int     `json:"amount"`
-	Tax      float64 `json:"tax"`
+	Type      string  `json:"type"`
+	Sender    int     `json:"sender"`
+	Reciever  int     `json:"reciever"`
+	Amount    int     `json:"amount"`
+	Tax       float64 `json:"tax"`
+	TimeStamp string  `json:"timestamp"`
 }

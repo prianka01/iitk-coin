@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"iitk-coin/model"
+	"iitk-coin/pages/getdatabase"
 	"iitk-coin/pages/secretpage"
 	"log"
 	"net/http"
@@ -28,11 +29,7 @@ func ViewRecords(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user.Rollno=rollno
-	database, err := sql.Open("sqlite3", "../../database.db")
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	database, _ := getdatabase.GetDatabase()
 	var ctx context.Context
 	ctx=r.Context()
 	tx, err := database.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
@@ -64,8 +61,8 @@ func ViewRecords(w http.ResponseWriter, r *http.Request) {
     var transaction model.Transaction
 	var record string
     for rows.Next() {
-        rows.Scan(&transaction.Type,&transaction.Sender,&transaction.Reciever,&transaction.Amount,&transaction.Tax)
-        record=record+transaction.Type+" "+strconv.Itoa(transaction.Reciever)+ " from "+strconv.Itoa(transaction.Sender)+": Amount="+strconv.Itoa(transaction.Amount)+" with tax="+strconv.FormatFloat(transaction.Tax,'f',-1,64);
+        rows.Scan(&transaction.Type,&transaction.Sender,&transaction.Reciever,&transaction.Amount,&transaction.Tax,&transaction.TimeStamp)
+        record=record+transaction.Type+" "+strconv.Itoa(transaction.Reciever)+ " from "+strconv.Itoa(transaction.Sender)+": Amount="+strconv.Itoa(transaction.Amount)+" with tax="+strconv.FormatFloat(transaction.Tax,'f',-1,64)+" at time-"+transaction.TimeStamp;
 		record+="\n";
     }
 	if err := tx.Commit(); err != nil {
