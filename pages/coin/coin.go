@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"iitk-coin/model"
+	"iitk-coin/pages/secretpage"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -27,19 +28,32 @@ type transfer struct {
 }
 func AwardCoins(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	tokenString := r.Header.Get("Authorization")
+	var res model.ResponseResult
+	access,err:=secretpage.HasAccess(tokenString,"gensec")
+	if err!=nil {
+		res.Error = "Please try again!"
+		json.NewEncoder(w).Encode(res)
+		return
+	}
+	if !access {
+		res.Error = "Access to the page denied"
+		json.NewEncoder(w).Encode(res)
+		return
+	}
 	var user input
 	body, _ := ioutil.ReadAll(r.Body)
-	err := json.Unmarshal(body, &user)
+	err = json.Unmarshal(body, &user)
 	if err != nil {
 		log.Fatal(err)
 	}
-	database, err := sql.Open("sqlite3", "../../userInfos.db")
+	database, err := sql.Open("sqlite3", "../../userdatabase.db")
 
 	if err != nil {
 		log.Fatal(err)
 	}
 	var result model.User
-	var res model.ResponseResult
+	
 	var ctx context.Context
 	ctx=r.Context()
 	tx, err := database.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
@@ -79,19 +93,27 @@ func AwardCoins(w http.ResponseWriter, r *http.Request) {
 
 func GetCoins(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	tokenString := r.Header.Get("Authorization")
+	var res model.ResponseResult
 	var user model.User
-	body, _ := ioutil.ReadAll(r.Body)
-	err := json.Unmarshal(body, &user)
-	if err != nil {
-		log.Fatal(err)
+	rollno,err:=secretpage.StudentAccess(tokenString)
+	if err!=nil {
+		res.Error = "Please try again!"
+		json.NewEncoder(w).Encode(res)
+		return
 	}
-	database, err := sql.Open("sqlite3", "../../userInfos.db")
+	if rollno==-1 {
+		res.Error = "Invalid JWT Token"
+		json.NewEncoder(w).Encode(res)
+		return
+	}
+	user.Rollno=rollno
+	database, err := sql.Open("sqlite3", "../../userdatabase.db")
 
 	if err != nil {
 		log.Fatal(err)
 	}
 	var result getCoin
-	var res model.ResponseResult
 	var ctx context.Context
 	ctx=r.Context()
 	tx, err := database.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
@@ -123,20 +145,34 @@ func GetCoins(w http.ResponseWriter, r *http.Request) {
 
 func TransferCoins(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	tokenString := r.Header.Get("Authorization")
+	var res model.ResponseResult
+	
+	rollno,err:=secretpage.StudentAccess(tokenString)
+	if err!=nil {
+		res.Error = err.Error()
+		json.NewEncoder(w).Encode(res)
+		return
+	}
+	if rollno==-1 {
+		res.Error = "Invalid JWT Token"
+		json.NewEncoder(w).Encode(res)
+		return
+	}
 	var request transfer
 	body, _ := ioutil.ReadAll(r.Body)
-	err := json.Unmarshal(body, &request)
+	err = json.Unmarshal(body, &request)
 	if err != nil {
 		log.Fatal(err)
 	}
-	database, err := sql.Open("sqlite3", "../../userInfos.db")
+	request.Sender=rollno
+	database, err := sql.Open("sqlite3", "../../userdatabase.db")
 
 	if err != nil {
 		log.Fatal(err)
 	}
 	var sender model.User
 	var reciever model.User
-	var res model.ResponseResult
 	var ctx context.Context
 	ctx=r.Context()
 	tx, err := database.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
