@@ -10,6 +10,7 @@ import (
 	"iitk-coin/pages/coin"
 	"iitk-coin/pages/secretpage"
 	"iitk-coin/user/login"
+	"iitk-coin/user/records"
 
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
@@ -38,6 +39,8 @@ func main() {
 	r.HandleFunc("/getcoins", coin.GetCoins).
 		Methods("GET","OPTIONS")
 	r.HandleFunc("/transfercoins", coin.TransferCoins).
+		Methods("POST","OPTIONS")
+	r.HandleFunc("/records", records.ViewRecords).
 		Methods("POST","OPTIONS")
 	log.Fatal(http.ListenAndServe("localhost:8080", r))
     
