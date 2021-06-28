@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	// "time"
 )
 
@@ -18,13 +19,31 @@ type input struct {
 }
 type getCoin struct {
 	Rollno        		int    `json:"rollno"`
-	Coins        		int    `json:"coins"`
+	Coins        		float64    `json:"coins"`
 }
 
 type transfer struct {
 	Sender      	int    `json:"sender"`
 	Reciever        int    `json:"reciever"`
-	Coins        		int    `json:"coins"`
+	Coins        	int    `json:"coins"`
+}
+func addTransaction(transaction model.Transaction) error{
+	database, _ := sql.Open("sqlite3", "../../database.db")
+	statement, err:= database.Prepare("INSERT INTO Transactions (Type, Sender, Reciever, Amount, Tax) VALUES (?, ?, ?, ?, ?)")
+	if err!=nil {
+		return err
+	}
+    _,err=statement.Exec(transaction.Type,transaction.Sender,transaction.Reciever,transaction.Amount,transaction.Tax)
+	return err;
+}
+func createTable() error{
+	database, err := sql.Open("sqlite3", "../../database.db")
+	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS Transactions (Type TEXT, Sender INTEGER, Reciever INTEGER, Amount INTEGER, Tax REAL)")
+    statement.Exec()
+	 if err!=nil {
+		panic(err)
+	}
+	return err
 }
 func AwardCoins(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -47,8 +66,7 @@ func AwardCoins(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	database, err := sql.Open("sqlite3", "../../userdatabase.db")
-
+	database, err := sql.Open("sqlite3", "../../database.db")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -83,9 +101,30 @@ func AwardCoins(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(res)
 		return
 	}
+	var transaction model.Transaction
+	transaction.Type="Awarded"
+	transaction.Reciever=user.Rollno
+	transaction.Amount=user.AwardedCoins
+	transaction.Tax=0
+	transaction.Sender=1
+	err=createTable()
+	if err!=nil {
+		 tx.Rollback()
+		res.Error = err.Error()
+		json.NewEncoder(w).Encode(res)
+		return
+	}
+	err=addTransaction(transaction)
+	if err!=nil {
+		 tx.Rollback()
+		res.Error = err.Error()
+		json.NewEncoder(w).Encode(res)
+		return
+	}
 	if err := tx.Commit(); err != nil {
 		log.Fatal(err)
 	}
+	
 	res.Result = "Coins succesfully awarded"
 	json.NewEncoder(w).Encode(res)
 	return
@@ -108,7 +147,7 @@ func GetCoins(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user.Rollno=rollno
-	database, err := sql.Open("sqlite3", "../../userdatabase.db")
+	database, err := sql.Open("sqlite3", "../../database.db")
 
 	if err != nil {
 		log.Fatal(err)
@@ -166,7 +205,7 @@ func TransferCoins(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	request.Sender=rollno
-	database, err := sql.Open("sqlite3", "../../userdatabase.db")
+	database, err := sql.Open("sqlite3", "../../database.db")
 
 	if err != nil {
 		log.Fatal(err)
@@ -208,23 +247,57 @@ func TransferCoins(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(res)
 		return
 	}
-	if sender.Coins-request.Coins<0 {
+	taxtype:=2
+	tax:=0.30*float64(request.Coins)
+	batch_sender:=(strconv.Itoa(request.Sender))[1]-47
+	batch_reciever:=(strconv.Itoa(request.Reciever))[1]-47
+	if batch_sender==batch_reciever {
+		tax=0.02*float64(request.Coins)
+		taxtype=1
+	}
+	requestedcoins:=float64(request.Coins)+tax
+	if sender.Coins-requestedcoins<0 {
 		res.Error = "Not enough coins to transfer"
 		json.NewEncoder(w).Encode(res)
 		return
 	}
 	// time.Sleep(10*time.Second)
-	no,err:=database.Exec(`UPDATE User set Coins=Coins-(?) WHERE (Rollno=(?) AND Coins>=(?))`,request.Coins,request.Sender,request.Coins)
+	var no sql.Result
+	if taxtype==2 {
+		no,err=database.Exec(`UPDATE User set Coins=Coins-(?) WHERE (Rollno=(?) AND Coins>=(?))`,float64(request.Coins)+0.30*float64(request.Coins),request.Sender,float64(request.Coins)+0.30*float64(request.Coins));
+	}else {
+		no,err=database.Exec(`UPDATE User set Coins=Coins-(?) WHERE (Rollno=(?) AND Coins>=(?))`,float64(request.Coins)+0.02*float64(request.Coins),request.Sender,float64(request.Coins)+0.02*float64(request.Coins));
+	}
 	x,_:=no.RowsAffected()
 	if x==0 ||err != nil {
 		res.Error = "Error While Updating Coins or Coins not sufficient, Please try again"
 		json.NewEncoder(w).Encode(res)
 		return
 	}
-	_,err=database.Exec(`UPDATE User set Coins=Coins+(?) WHERE Rollno=(?)`,request.Coins,request.Reciever)
+	_,err=database.Exec(`UPDATE User set Coins=Coins+(?) WHERE Rollno=(?)`,float64(request.Coins),request.Reciever)
 	if err != nil {
 		tx.Rollback()
 		res.Error = "Error While Updating Coins"
+		json.NewEncoder(w).Encode(res)
+		return
+	}
+	var transaction model.Transaction
+	transaction.Type="Transfer"
+	transaction.Sender=request.Sender
+	transaction.Reciever=request.Reciever
+	transaction.Amount=request.Coins
+	transaction.Tax=tax
+	err=createTable()
+	if err!=nil {
+		 tx.Rollback()
+		res.Error = err.Error()
+		json.NewEncoder(w).Encode(res)
+		return
+	}
+	err=addTransaction(transaction)
+	if err!=nil {
+		 tx.Rollback()
+		res.Error = err.Error()
 		json.NewEncoder(w).Encode(res)
 		return
 	}
