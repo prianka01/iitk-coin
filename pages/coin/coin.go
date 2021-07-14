@@ -31,16 +31,16 @@ type transfer struct {
 }
 func addTransaction(transaction model.Transaction) error{
 	database, _ := getdatabase.GetDatabase()
-	statement, err:= database.Prepare("INSERT INTO Transactions (Type, Sender, Reciever, Amount, Tax, Timestamp) VALUES (?, ?, ?, ?, ?, ?)")
+	statement, err:= database.Prepare("INSERT INTO Transactions (Type, Sender, Reciever, Amount, Tax, Timestamp, Info) VALUES (?, ?, ?, ?, ?, ?, ?)")
 	if err!=nil {
 		return err
 	}
-    _,err=statement.Exec(transaction.Type,transaction.Sender,transaction.Reciever,transaction.Amount,transaction.Tax,transaction.TimeStamp)
+    _,err=statement.Exec(transaction.Type,transaction.Sender,transaction.Reciever,transaction.Amount,transaction.Tax,transaction.TimeStamp,transaction.Info)
 	return err;
 }
 func createTable() error{
 	database, _ := getdatabase.GetDatabase()
-	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS Transactions (Type TEXT, Sender INTEGER, Reciever INTEGER, Amount INTEGER, Tax REAL, Timestamp TEXT)")
+	statement, err := database.Prepare("CREATE TABLE IF NOT EXISTS Transactions (Type TEXT, Sender INTEGER, Reciever INTEGER, Amount INTEGER, Tax REAL, Timestamp TEXT, Info TEXT)")
     statement.Exec()
 	 if err!=nil {
 		panic(err)
@@ -107,6 +107,7 @@ func AwardCoins(w http.ResponseWriter, r *http.Request) {
 	transaction.Tax=0
 	transaction.Sender=1
 	transaction.TimeStamp=time.Now().String()
+	transaction.Info=""
 	err=createTable()
 	if err!=nil {
 		 tx.Rollback()
@@ -280,6 +281,7 @@ func TransferCoins(w http.ResponseWriter, r *http.Request) {
 	transaction.Amount=request.Coins
 	transaction.Tax=tax
 	transaction.TimeStamp=time.Now().String()
+	transaction.Info=""
 	err=createTable()
 	if err!=nil {
 		 tx.Rollback()
